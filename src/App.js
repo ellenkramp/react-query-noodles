@@ -1,28 +1,57 @@
-import './App.css';
-import { QueryClientProvider, QueryClient, useQuery } from "react-query"
-import axios from "axios"
+import "./App.css";
+import { useState } from "react";
+import { QueryClientProvider, QueryClient, useQuery } from "react-query";
+import { ReactQueryDevtools } from "react-query/devtools";
+import axios, { CancelToken } from "axios";
 
-const QueryStuff = () => {
-  const queryInfo = useQuery('pokemon', () => 
-    axios
-      .get("https://pokeapi.co/api/v2/pokemon/")
-      .then(res => res.data.results)
-  )
+const PokemonSearch = ({ pokemon }) => {
+  const queryInfo = useQuery(
+    pokemon,
+    () => {
+      const source = CancelToken.source();
 
-  console.log(queryInfo)
+      const promise = new Promise(resolve => setTimeout(resolve, 1000))
+        .then(() =>
+          axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemon}/`, {
+            cancelToken: source.token,
+          })
+        )
+        .then(res => res.data);
 
-  return queryInfo.data.map(pokemon => 
-  <div>
-    {pokemon.name}
-  </div>
-  )
-}
+      promise.cancel = () => source.cancel("canceled");
+      return promise;
+    },
+    { enabled: !!pokemon }
+  );
+
+  const { isLoading, isSuccess, data } = queryInfo;
+  return isLoading ? (
+    "loading"
+  ) : isSuccess && data && data.sprites ? (
+    <img src={data.sprites?.front_shiny} alt={pokemon} />
+  ) : (
+    "Type something"
+  );
+};
 
 export default function App() {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient();
+
+  const [pokemon, setPokemon] = useState("");
+
+  const updatePokemonInput = newPokemon => {
+    setPokemon(newPokemon);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      <QueryStuff />
+      PokemonSearch
+      <input
+        value={pokemon}
+        onChange={e => updatePokemonInput(e.target.value)}
+      />
+      <PokemonSearch pokemon={pokemon} />
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
