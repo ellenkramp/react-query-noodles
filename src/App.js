@@ -2,55 +2,51 @@ import "./App.css";
 import { useState } from "react";
 import { QueryClientProvider, QueryClient, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
-import axios, { CancelToken } from "axios";
+import axios from "axios";
 
-const PokemonSearch = ({ pokemon }) => {
-  const queryInfo = useQuery(
-    pokemon,
-    () => {
-      const source = CancelToken.source();
+const email = "Sincere@april.biz";
 
-      const promise = new Promise(resolve => setTimeout(resolve, 1000))
-        .then(() =>
-          axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemon}/`, {
-            cancelToken: source.token,
-          })
+const MyPosts = () => {
+  const userQuery = useQuery("user", () =>
+    axios
+      .get(`https://jsonplaceholder.typicode.com/users?email=${email}`)
+      .then(res => res.data[0])
+  )
+
+  const postsQuery = useQuery(
+    "posts",
+    () =>
+      axios
+        .get(
+          `https://jsonplaceholder.typicode.com/posts?userId=${userQuery.data.id}`
         )
-        .then(res => res.data);
-
-      promise.cancel = () => source.cancel("canceled");
-      return promise;
-    },
-    { enabled: !!pokemon }
+        .then(res => res.data),
+    {
+      enabled: !!userQuery.data?.id,
+    }
   );
 
-  const { isLoading, isSuccess, data } = queryInfo;
-  return isLoading ? (
-    "loading"
-  ) : isSuccess && data && data.sprites ? (
-    <img src={data.sprites?.front_shiny} alt={pokemon} />
-  ) : (
-    "Type something"
+  return (
+    userQuery.isLoading ? ("Loading user") :
+    <div>
+      User ID: {userQuery.data?.id}
+      <br />
+      <nr />
+      {(postsQuery.isLoading || postsQuery.isIdle) ? (
+        "Loading posts"
+      ) : (
+        <div>Post count: {postsQuery.data?.length}</div>
+      )}
+    </div>
   );
 };
 
 export default function App() {
   const queryClient = new QueryClient();
 
-  const [pokemon, setPokemon] = useState("");
-
-  const updatePokemonInput = newPokemon => {
-    setPokemon(newPokemon);
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
-      PokemonSearch
-      <input
-        value={pokemon}
-        onChange={e => updatePokemonInput(e.target.value)}
-      />
-      <PokemonSearch pokemon={pokemon} />
+      <MyPosts />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
