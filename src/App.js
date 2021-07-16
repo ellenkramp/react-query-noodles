@@ -1,42 +1,53 @@
 import "./App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClientProvider, QueryClient, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import axios from "axios";
 
-const email = "Sincere@april.biz";
+const fetchPosts = (_, { page }) =>
+  axios
+    .get(`https://jsonplaceholder.typicode.com/posts`, {
+      // params: {
+      //   pageSize: 10,
+      //   pageOffset: page,
+      // },
+    })
+    .then(res => res.data);
 
-const MyPosts = () => {
-  const userQuery = useQuery("user", () =>
-    axios
-      .get(`https://jsonplaceholder.typicode.com/users?email=${email}`)
-      .then(res => res.data[0])
-  )
+const Posts = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: Infinity,
+      },
+    },
+  });
 
-  const postsQuery = useQuery(
-    "posts",
-    () =>
-      axios
-        .get(
-          `https://jsonplaceholder.typicode.com/posts?userId=${userQuery.data.id}`
-        )
-        .then(res => res.data),
-    {
-      enabled: !!userQuery.data?.id,
-    }
-  );
+  const [page, setPage] = useState(1);
 
-  return (
-    userQuery.isLoading ? ("Loading user") :
+  const postsQuery = useQuery(["posts", { page }], fetchPosts);
+
+  useEffect(() => {
+    queryClient.prefetchQuery(
+      ["posts", { page: postsQuery.latestData?.nextPageOffset }],
+      fetchPosts
+    );
+  }, [postsQuery]);
+
+  return postsQuery.isLoading ? (
+    "Loading.."
+  ) : (
     <div>
-      User ID: {userQuery.data?.id}
       <br />
       <nr />
-      {(postsQuery.isLoading || postsQuery.isIdle) ? (
+      {postsQuery.isLoading || postsQuery.isIdle ? (
         "Loading posts"
       ) : (
         <div>Post count: {postsQuery.data?.length}</div>
       )}
+      <button onClick={() => setPage(old => old - 1)}>Previous</button>
+      <span>Current page: {page}</span>
+      <button onClick={() => setPage(old => old - 1)}>Next</button>
     </div>
   );
 };
@@ -46,7 +57,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MyPosts />
+      <Posts />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
