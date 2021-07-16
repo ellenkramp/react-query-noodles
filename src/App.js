@@ -1,67 +1,53 @@
 import "./App.css";
-import { useEffect, useState } from "react";
-import {
-  QueryClientProvider,
-  QueryClient,
-  useInfiniteQuery,
-} from "react-query";
+import Link from "next/link"
+import { QueryClientProvider, QueryClient, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import axios from "axios";
 
-const fetchPosts = (_, page = 1) =>
+const fetchPosts = () =>
   axios
-    .get(`https://jsonplaceholder.typicode.com/posts`, {
-      params: {
-        pageSize: 10,
-        pageOffset: page,
-      },
-    })
+    .get(`https://jsonplaceholder.typicode.com/posts`)
     .then(res => res.data);
 
-const Posts = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: Infinity,
-      },
-    },
-  });
+  export const getServerSideProps = async () => {
+    const posts = await fetchPosts();
 
-  const [page, setPage] = useState(1);
+    return {
+      props: { posts },
+    };
+  };
 
-  const postsQuery = useInfiniteQuery("posts", fetchPosts, {
-    getFetchMore: (lastPage, allPages) => lastPage.items.nextPageOffset
-  });
+  const Posts = (props) => {
+    console.log(props);
+    // nextjs isn't set up properly but there should be posts as props
 
-  useEffect(() => {
-    queryClient.prefetchQuery(
-      "posts",
-      fetchPosts
+    const postsQuery = useQuery("posts", fetchPosts);
+
+    return postsQuery.isLoading ? (
+      "Loading.."
+    ) : postsQuery.data ? (
+      <div>
+        <br />
+        <br />
+        {postsQuery.isLoading || postsQuery.isIdle ? (
+          "Loading posts"
+        ) : (
+          <ul>
+            <h1>List</h1>
+            {postsQuery.data?.map(el => ( ( ( ( (
+              <li key={el.title}>{el.title}</li>
+            ))))))}
+          </ul>
+        )}
+        <Link href="/">link</Link>
+      </div>
+    ) : (
+      ""
     );
-  }, []);
+  };
 
-  return postsQuery.isLoading ? (
-    "Loading.."
-  ) : postsQuery.data? (
-    <div>
-      <br />
-      <br />
-      {postsQuery.isLoading || postsQuery.isIdle ? (
-        "Loading posts"
-      ) : (
-        <ul>
-          <h1>List</h1>
-          {postsQuery.data.pages?.map(page => (
-            page.map(el => <li>{el.title}</li>)
-          ))}
-        </ul>
-      )}  
-      <button onClick={() => postsQuery.fetchNextPage()}>Get more</button>
-    </div>
-  ): "";
-};
-
-export default function App() {
+export default function App(props) {
+console.log("real root props", props)
   const queryClient = new QueryClient();
 
   return (
