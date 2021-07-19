@@ -1,70 +1,201 @@
-# Getting Started with Create React App
+# Getting Started with React Query
+This library helps to manage data being fetched and updated through query and mutation hooks
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Setup [Full Docs](https://react-query.tanstack.com/quick-start)
 
-## Available Scripts
+- Need to create a client and provider and wrap your app in the provider, passing in the client
 
-In the project directory, you can run:
+Example:
 
-### `npm start`
+```// Create a client
+ const queryClient = new QueryClient()
+ 
+ function App() {
+   return (
+     // Provide the client to your App
+     <QueryClientProvider client={queryClient}>
+       <Todos />
+     </QueryClientProvider>
+   )
+ }
+ ```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Queries [Docs](https://react-query.tanstack.com/guides/queries)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Queries are any request to get data
 
-### `npm test`
+### How to query
+```
+const request = fetch(url, {})
+const query = useQuery(NAME_OF_QUERY`, request, {CONFIG_OPTIONS})
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Query keys [Docs](https://react-query.tanstack.com/guides/query-keys)
 
-### `npm run build`
+- Can be dynamic
+- Can be arrays for more specific keys
+- Can pass a prop in to make differentiated keys
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Config Options
+An object passed in as the 3rd param of useQuery
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Defaults to refetch stale data on window focus, but can negate that with config options
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Examples of options:
 
-### `npm run eject`
+```
+{ refetchOnWindowFocus: false }
+{ cacheTime: INT in ms } or can do Infinity
+{ retry: INT } number of automatic retries
+{ retryDelay: INT in ms } can configure custom retry delay
+{ initialData: {} } anything that can supplement data so that it does not need to fetch data the first time it mounts the component
+{ initialStale: boolean } if true, will fetch data as soon as component mounts
+{ refetchInterval: INT ms } how often to refetch data - it only refetches while tab is in focus
+{ refetchIntervalInBackground: boolean } set to true, if you want it to refetch when the tab is not in focus
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### Query Statuses
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Helpful statuses that come baked into queries
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Examples:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+query
+.isLoading
+.isError
+.isSuccess
+.isFetching
 
-## Learn More
+### QueryCache
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Use data from one query as initial data for another
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Functional form of initialData config:
 
-### Code Splitting
+`initialData: () => queryCache.getQueryData(QUERY_KEY)`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- Can add .find(id === id) to match up initial data from array and individual
 
-### Analyzing the Bundle Size
+`{ initialStale: boolean }` set true to update in background
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- `queryCache.setQueryData(QUERY_KEY, data)`
 
-### Making a Progressive Web App
+- data is always fetched in background with this method as it is considered ‘stale’ immediately
+    
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+#### Pre-fetching
 
-### Advanced Configuration
+`.prefetchQuery(QUERY_KEY, () => fn to fetch data)`
+ - load data before component is mounted
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- On hover or `onMouseEnter` can set to prefetch
+- Can use many similar options to regular query
+- `{ staleTime: INT }` ms or Infinity (then it will only prefetch once) }
+- Can also use `{ force: true }` object (separate from config options, those would be null here
+    - example: `queryCache.prefetchQuery(QUERY_KEY, () => fnToFetchData, null, { force: true} )`
+    - Fourth object is unique to querycache
+        - You shouldn’t have to use this often and override “stale” quality
 
-### Deployment
+#### Invalidate Queries
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- Manually invalidates data and triggers a refetch
+	`queryCache.invalidateQueries(QUERY_NAME)`
+- `{ refetchActive: false }` makes it so it won’t do an immediate refetch
+- Invalidated queries that aren’t in use will not refetch, unless you change the refetchInactive config
 
-### `npm run build` fails to minify
+InvalidateQueries Options Config:
+`{ refetchActive: false }`
+`{ refetchInactive: true }` - can set this to true to refetch queries not currently mounted
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Paginated Queries [Docs](https://react-query.tanstack.com/guides/paginated-queries)
+
+`usePaginatedQuery`
+-as the key changes, it keeps the old data around
+- Query methods change to:
+    - `.resolvedData`
+    - `.latestData`
+    - `.latestData.nextPageOffset` to see if there is another page
+     - If this `nextPageOffset` exists, it’s a good indication that you can prefetch the next page
+     - Use `useEffect() {}`
+￼
+#### Infinite Query [Docs](https://react-query.tanstack.com/guides/infinite-queries)
+
+`Const query = useInfiniteQuery()`
+
+`Query.data` comes back as an array of arrays to mimic pagination
+
+Must pass in `{ getFetchMore}` 
+
+Example: 
+	- `useInfiniteQuery("posts", fetchPosts, {
+    getFetchMore: (lastPage, allPages) => lastPage.items.nextPageOffset
+  })`
+- Getfetchmore will add to the end of the existing data
+- Disable pagination using info from original query
+- `Canfetchmore` as boolean
+
+Refetches happen as would normally, up to the page that you’re currently at
+
+- Can pass in new query id’s as pages are incremented so that individual pages become invalidated
+
+
+### Mutations [Docs](https://react-query.tanstack.com/guides/mutations)
+
+- use many of the same features of queries, but used for update, create, and delete functionality
+
+## Cool Features
+
+### Caching
+
+- React query caches data automatically
+- Refetches in background
+
+### Side Effects
+```
+onSuccess: (data) => { do what you want with it }
+
+onError: (error) =>
+
+onSettled(data, error) => (it’s done, whether success or error) 
+```
+
+**Gets called for every single query instance across application, not just once
+
+For functionality that should not be duplicated, do it inside the function where the call is made
+
+### Dependent Queries [Docs](https://react-query.tanstack.com/guides/dependent-queries)
+
+- Launching a query dependent on the success of a previous query
+- Start in an ‘isIdle’ state as opposed to ‘isLoading’
+
+### Cancel fetching
+
+- AXIOS
+```
+      	const source = CancelToken.source();
+	const promise.cancel = () => source.cancel(“message”)
+	pass in { cancelToken: source.token } for axios options
+```
+- FETCH API
+```
+	const controller = new AbortController()
+	const signal = controller.signal
+Const promise.cancel = () => controller.abort()
+	pass in { signal } for fetch options
+```
+
+### Failure handling
+- Automatic retry 3 times with exponential backoff - every time it tries, it will get a little longer
+    - Can also configure retryDelay to a custom time in ms
+- Can configure retry count
+- Stays in a “loading” state until final retry
+
+### React Query Devtools [Docs](https://react-query.tanstack.com/devtools)
+- used for debugging and viewing queries and data cache
+`import { ReactQueryDevtools } from 'react-query/devtools'`
+- This is a renderable component that should be rendered as high up in the tree as possible
+
+### Scroll Restoration
+- based on forward/backward navigation in browser
+- Using the back button takes you back to the exact place on the page that you were
+- Dependent on cachetime... if you don't have a very long cachetime, it won't "remember"
