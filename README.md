@@ -143,6 +143,63 @@ Refetches happen as would normally, up to the page that you’re currently at
 
 - use many of the same features of queries, but used for update, create, and delete functionality
 
+- `useMutation` returns 2 things in an array `[function, functionInfo ]`
+
+- E.g., const `[createPosts, createPostInfo = useMutation(() => api call here)`
+
+Properties on functionInfo similar to queries, for example:
+
+functionInfo
+- .isLoading
+- .isSuccess
+- .isError
+
+Config. Object:
+
+#### Side Effects
+```
+{
+onSuccess: (data, originalValuesPassedToMutation) => any function you want to execute upon success of the api call
+}
+```
+
+^ useful onSuccess function is to invalidate any query for data that the mutation affected.
+- For instance , if I’m viewing posts and then submit a post, invalidating the previous post query upon success of the addition of the new post will trigger a refetch and then the new post would be visible
+- Another use case: `onSuccess(data, originalValues) => queryCache.setQueryData(QUERY_KEY, data)`
+    - Then you don’t have to wait for a re-fetch
+- Can do both invalidation and setQueryData in combination
+
+```
+{
+onError: (error, values, rollbackValues) => any function you want to execute upon error of the api call,
+}
+```
+ -  `error.response` is available
+- `createPostInfo.error` is also a thing
+```
+{
+onSettled: (data, error) => any function you want to execute upon error of the api call,
+}
+```
+- Can invalidate queries for updated data
+- Also good to invalidate queries after an error
+
+
+#### Optimistic Updates
+```
+{
+onMutate: (values) => runs when user triggers mutation, return rollback values at end, or function to set rollback values back to queryCache
+}
+```
+- Opportunity to use queryCache.setQueryData(QUERY_KEY, () => olde values and new values)
+- Capture old query data first with queryCache.getQueryData()
+- onError, use cached data as rollbackValues
+- Fancy rollback function parameter on Error 
+￼
+If rollback, call rollback
+- `queryCache.cancelQueries()` at top of `onMutate` function to ensure no weird race conditions
+
+
 ## Cool Features
 
 ### Caching
