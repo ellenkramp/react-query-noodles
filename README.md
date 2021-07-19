@@ -85,7 +85,7 @@ Functional form of initialData config:
 
 #### Pre-fetching
 
-`.prefetchQuery(QUERY_KEY, () => fn to fetch data)`
+`queryCache.prefetchQuery(QUERY_KEY, () => fn to fetch data)`
  - load data before component is mounted
 
 - On hover or `onMouseEnter` can set to prefetch
